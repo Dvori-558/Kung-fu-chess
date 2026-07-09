@@ -1,25 +1,43 @@
 package engine;
 
-import board.BoardContext;
-
 /**
- * GameEngine interface - application-level move orchestration.
+ * GameEngine interface - application-service coordinator.
+ * 
+ * GameEngine is the public command boundary. It coordinates:
+ * - Board (logical occupancy)
+ * - RuleEngine (move validation)
+ * - RealTimeArbiter (motion and time)
+ * 
+ * GameEngine does NOT contain:
+ * - Piece-specific movement logic (that's RuleEngine/PieceRules)
+ * - Real-time motion state (that's RealTimeArbiter)
+ * - Rendering code
+ * - Input parsing or pixel mapping
+ * - Test-runner logic
  * 
  * Responsibilities:
- * - Accept move requests and return MoveResult with reason string
- * - Guard against game_over and motion_in_progress conditions
- * - Delegate validation to RuleEngine (rule-level reasons)
- * - Manage motion lifecycle (airborne pieces, completion)
- * - Provide read-only snapshot and wait functionality
+ * - Check game_over guard
+ * - Check motion_in_progress guard (delegate to RealTimeArbiter)
+ * - Delegate move validation to RuleEngine
+ * - Start legal motions through RealTimeArbiter
+ * - Advance time through RealTimeArbiter
+ * - Provide read-only GameSnapshot for rendering
  */
 public interface GameEngine {
     /**
-     * Request a move. Returns immediately with MoveResult.
+     * Request a move from source to destination.
+     * Returns immediately with MoveResult.
+     * 
+     * Guards applied in order:
+     * 1. Check game_over flag
+     * 2. Check if RealTimeArbiter has active motion
+     * 3. Call RuleEngine.validateMove
+     * 4. If valid, call RealTimeArbiter.startMotion
      * 
      * Rejection reasons:
-     * - "ok": accepted
-     * - "game_over": game has ended
-     * - "motion_in_progress": pieces are animating
+     * - "ok": accepted and motion started
+     * - "game_over": game has ended, no moves allowed
+     * - "motion_in_progress": another piece is moving, try later
      * - "outside_board", "empty_source", "friendly_destination", "illegal_piece_move": rule-level
      * 
      * @param srcRow source row
@@ -31,17 +49,20 @@ public interface GameEngine {
     MoveResult requestMove(int srcRow, int srcCol, int destRow, int destCol);
     
     /**
-     * Pause for duration (ms), allowing motion to progress.
-     * Safe to call when game is over.
+     * Advance simulated time, allowing motions to progress.
+     * Delegates to RealTimeArbiter.advanceTime.
      * 
-     * @param durationMs milliseconds to pause
+     * Safe to call when game is over (no-op if no active motions).
+     * 
+     * @param durationMs milliseconds to advance
      */
     void pause(long durationMs);
     
     /**
      * Create a read-only snapshot of current game state.
+     * Snapshot contains logical board state and animation state.
      * 
-     * @return GameSnapshot with board and metadata
+     * @return GameSnapshot with board, piece positions, game-over flag
      */
     GameSnapshot snapshot();
 }

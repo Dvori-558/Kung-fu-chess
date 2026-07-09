@@ -4,7 +4,9 @@ import board.Board;
 
 /**
  * GameSnapshot is a read-only snapshot of game state.
- * Contains board and metadata at a moment in time.
+ * Contains logical board state and game-over flag at a moment in time.
+ * 
+ * Renderer uses this to draw the game state without mutating it.
  */
 public class GameSnapshot {
     private final Board board;

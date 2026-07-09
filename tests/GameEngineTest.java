@@ -3,19 +3,16 @@ package tests;
 import models.Piece;
 import models.PieceType;
 import board.Board;
-import board.MoveManager;
-import board.AirborneManager;
-import board.PromotionService;
-import board.WinManager;
 import engine.GameEngine;
 import engine.GameEngineImpl;
 import engine.MoveResult;
 import rules.GameConfig;
-import rules.WinCondition;
 
 /**
- * Unit tests for GameEngine application-level guards.
- * Tests game_over rejection, motion_in_progress rejection, and proper MoveResult returns.
+ * Unit tests for GameEngine coordinator layer.
+ * Tests application-level guards and delegation behavior only.
+ * Does NOT test motion details (that's RealTimeArbiterTest).
+ * Does NOT test rule validation (that's RuleEngineTest).
  */
 public class GameEngineTest {
     
@@ -25,7 +22,7 @@ public class GameEngineTest {
         
         GameConfig config = new GameConfig.Builder().buildStandardChess().build();
         
-        // Test 1: Valid move is accepted
+        // Test 1: Valid move returns ok
         total++;
         try {
             Piece[][] grid = new Piece[3][3];
@@ -54,14 +51,14 @@ public class GameEngineTest {
             Board board = Board.create(grid, config);
             GameEngine engine = new GameEngineImpl(board, config);
             
-            // Make a valid move to trigger capture
+            // Start capture move
             MoveResult result1 = engine.requestMove(0, 0, 0, 2);
             assert result1.isAccepted() : "First move should be accepted";
             
-            // Advance time to complete the move
+            // Advance time to complete motion and trigger king capture
             engine.pause(config.getMoveDurationMs());
             
-            // Now the game should be over. Try another move.
+            // Now game is over. Try another move.
             MoveResult result2 = engine.requestMove(0, 0, 1, 0);
             assert !result2.isAccepted() : "Move after game over should be rejected";
             assert result2.getReason().equals(MoveResult.GAME_OVER) : 
@@ -213,13 +210,14 @@ public class GameEngineTest {
             
             var snapshot = engine.snapshot();
             assert !snapshot.isGameOver() : "Game should not be over";
+            assert snapshot.getBoard() != null : "Snapshot should have board";
             System.out.println("[PASS] Test 9: Snapshot created");
             passed++;
         } catch (Exception e) {
             System.out.println("[FAIL] Test 9: " + e.getMessage());
         }
         
-        // Test 10: wait(ms) does not crash when game is over
+        // Test 10: pause(ms) is safe after game over
         total++;
         try {
             Piece[][] grid = new Piece[3][3];
@@ -234,14 +232,14 @@ public class GameEngineTest {
             engine.requestMove(0, 0, 0, 2);
             engine.pause(config.getMoveDurationMs());
             
-            // wait() should not crash after game over
+            // pause() should not crash after game over
             engine.pause(1000);
-            System.out.println("[PASS] Test 10: wait() safe after game over");
+            System.out.println("[PASS] Test 10: pause() safe after game over");
             passed++;
         } catch (Exception e) {
             System.out.println("[FAIL] Test 10: " + e.getMessage());
         }
         
-        System.out.println("\n=== GameEngine Tests: " + passed + "/" + total + " passed ===");
+        System.out.println("\n=== GameEngine Tests (Coordinator): " + passed + "/" + total + " passed ===");
     }
 }

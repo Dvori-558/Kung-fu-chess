@@ -1,7 +1,12 @@
-package board;
+package engine;
 
 import rules.WinCondition;
 
+/**
+ * WinManager tracks game-over state.
+ * Delegates to WinCondition strategy.
+ * Owned by engine layer.
+ */
 public class WinManager {
     private final WinCondition winCondition;
 
@@ -10,12 +15,10 @@ public class WinManager {
     }
 
     public void recordKingCapture(char winnerColor) {
-        // Delegate to underlying strategy
         winCondition.recordKingCapture(winnerColor);
     }
 
     public boolean isGameOver() {
-        // Many WinCondition implementations don't need context; pass null
         return winCondition.isGameOver(null);
     }
 
