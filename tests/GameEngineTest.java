@@ -1,41 +1,247 @@
 package tests;
 
-import board.Board;
-import engine.ClickCommand;
-import engine.WaitCommand;
-import rules.GameConfig;
 import models.Piece;
 import models.PieceType;
+import board.Board;
+import board.MoveManager;
+import board.AirborneManager;
+import board.PromotionService;
+import board.WinManager;
+import engine.GameEngine;
+import engine.GameEngineImpl;
+import engine.MoveResult;
+import rules.GameConfig;
+import rules.WinCondition;
 
+/**
+ * Unit tests for GameEngine application-level guards.
+ * Tests game_over rejection, motion_in_progress rejection, and proper MoveResult returns.
+ */
 public class GameEngineTest {
+    
     public static void main(String[] args) {
-        int passed = 0, total = 0;
-
+        int passed = 0;
+        int total = 0;
+        
+        GameConfig config = new GameConfig.Builder().buildStandardChess().build();
+        
+        // Test 1: Valid move is accepted
         total++;
         try {
-            GameConfig config = new GameConfig.Builder().buildStandardChess().build();
-            Piece[][] grid = new Piece[8][8];
-            Piece pawn = new Piece(Piece.WHITE, PieceType.PAWN);
-            grid[6][0] = pawn; // white pawn at row 6
-            Board b = Board.create(grid, config);
-
-            engine.GameEngineImpl engine = new engine.GameEngineImpl(b, config);
-
-            // Click on pawn
-            engine.handle(new ClickCommand(0 * config.getPixelsPerCell() + 1, 6 * config.getPixelsPerCell() + 1));
-            // Click forward
-            engine.handle(new ClickCommand(0 * config.getPixelsPerCell() + 1, 5 * config.getPixelsPerCell() + 1));
-            // Wait to complete
-            engine.handle(new WaitCommand(config.getMoveDurationMs()));
-
-            if (b.getPieceAt(5,0) == null) throw new RuntimeException("Pawn did not move to expected square");
-
-            System.out.println("[PASS] Test 1: Engine click->move flow");
+            Piece[][] grid = new Piece[3][3];
+            Piece rook = new Piece(Piece.WHITE, PieceType.ROOK);
+            grid[0][0] = rook;
+            Board board = Board.create(grid, config);
+            GameEngine engine = new GameEngineImpl(board, config);
+            
+            MoveResult result = engine.requestMove(0, 0, 0, 2);
+            assert result.isAccepted() : "Valid move should be accepted";
+            assert result.getReason().equals(MoveResult.OK) : "Reason should be 'ok'";
+            System.out.println("[PASS] Test 1: Valid move accepted");
             passed++;
         } catch (Exception e) {
             System.out.println("[FAIL] Test 1: " + e.getMessage());
         }
-
+        
+        // Test 2: game_over guard rejects move
+        total++;
+        try {
+            Piece[][] grid = new Piece[3][3];
+            Piece rook = new Piece(Piece.WHITE, PieceType.ROOK);
+            Piece blackKing = new Piece(Piece.BLACK, PieceType.KING);
+            grid[0][0] = rook;
+            grid[0][2] = blackKing;
+            Board board = Board.create(grid, config);
+            GameEngine engine = new GameEngineImpl(board, config);
+            
+            // Make a valid move to trigger capture
+            MoveResult result1 = engine.requestMove(0, 0, 0, 2);
+            assert result1.isAccepted() : "First move should be accepted";
+            
+            // Advance time to complete the move
+            engine.pause(config.getMoveDurationMs());
+            
+            // Now the game should be over. Try another move.
+            MoveResult result2 = engine.requestMove(0, 0, 1, 0);
+            assert !result2.isAccepted() : "Move after game over should be rejected";
+            assert result2.getReason().equals(MoveResult.GAME_OVER) : 
+                "Reason should be 'game_over', got: " + result2.getReason();
+            System.out.println("[PASS] Test 2: game_over guard");
+            passed++;
+        } catch (Exception e) {
+            System.out.println("[FAIL] Test 2: " + e.getMessage());
+        }
+        
+        // Test 3: motion_in_progress guard rejects second move
+        total++;
+        try {
+            Piece[][] grid = new Piece[4][3];
+            Piece rook = new Piece(Piece.WHITE, PieceType.ROOK);
+            Piece pawn = new Piece(Piece.WHITE, PieceType.PAWN);
+            grid[0][0] = rook;
+            grid[1][0] = pawn;
+            Board board = Board.create(grid, config);
+            GameEngine engine = new GameEngineImpl(board, config);
+            
+            // Start first move
+            MoveResult result1 = engine.requestMove(0, 0, 0, 2);
+            assert result1.isAccepted() : "First move should be accepted";
+            
+            // Try to start second move while first is in progress
+            MoveResult result2 = engine.requestMove(1, 0, 2, 0);
+            assert !result2.isAccepted() : "Move while motion in progress should be rejected";
+            assert result2.getReason().equals(MoveResult.MOTION_IN_PROGRESS) : 
+                "Reason should be 'motion_in_progress', got: " + result2.getReason();
+            System.out.println("[PASS] Test 3: motion_in_progress guard");
+            passed++;
+        } catch (Exception e) {
+            System.out.println("[FAIL] Test 3: " + e.getMessage());
+        }
+        
+        // Test 4: Invalid move (outside board) returns rule-level reason
+        total++;
+        try {
+            Piece[][] grid = new Piece[3][3];
+            Piece rook = new Piece(Piece.WHITE, PieceType.ROOK);
+            grid[0][0] = rook;
+            Board board = Board.create(grid, config);
+            GameEngine engine = new GameEngineImpl(board, config);
+            
+            MoveResult result = engine.requestMove(-1, 0, 0, 2);
+            assert !result.isAccepted() : "Move outside board should be rejected";
+            assert result.getReason().equals("outside_board") : 
+                "Reason should be 'outside_board', got: " + result.getReason();
+            System.out.println("[PASS] Test 4: Invalid move - outside_board reason");
+            passed++;
+        } catch (Exception e) {
+            System.out.println("[FAIL] Test 4: " + e.getMessage());
+        }
+        
+        // Test 5: Invalid move (empty source) returns rule-level reason
+        total++;
+        try {
+            Piece[][] grid = new Piece[3][3];
+            Board board = Board.create(grid, config);
+            GameEngine engine = new GameEngineImpl(board, config);
+            
+            MoveResult result = engine.requestMove(0, 0, 0, 2);
+            assert !result.isAccepted() : "Move from empty cell should be rejected";
+            assert result.getReason().equals("empty_source") : 
+                "Reason should be 'empty_source', got: " + result.getReason();
+            System.out.println("[PASS] Test 5: Invalid move - empty_source reason");
+            passed++;
+        } catch (Exception e) {
+            System.out.println("[FAIL] Test 5: " + e.getMessage());
+        }
+        
+        // Test 6: Invalid move (friendly destination) returns rule-level reason
+        total++;
+        try {
+            Piece[][] grid = new Piece[3][3];
+            Piece rook = new Piece(Piece.WHITE, PieceType.ROOK);
+            Piece pawn = new Piece(Piece.WHITE, PieceType.PAWN);
+            grid[0][0] = rook;
+            grid[0][2] = pawn;
+            Board board = Board.create(grid, config);
+            GameEngine engine = new GameEngineImpl(board, config);
+            
+            MoveResult result = engine.requestMove(0, 0, 0, 2);
+            assert !result.isAccepted() : "Move to friendly destination should be rejected";
+            assert result.getReason().equals("friendly_destination") : 
+                "Reason should be 'friendly_destination', got: " + result.getReason();
+            System.out.println("[PASS] Test 6: Invalid move - friendly_destination reason");
+            passed++;
+        } catch (Exception e) {
+            System.out.println("[FAIL] Test 6: " + e.getMessage());
+        }
+        
+        // Test 7: Invalid move (illegal piece move) returns rule-level reason
+        total++;
+        try {
+            Piece[][] grid = new Piece[3][3];
+            Piece rook = new Piece(Piece.WHITE, PieceType.ROOK);
+            grid[0][0] = rook;
+            Board board = Board.create(grid, config);
+            GameEngine engine = new GameEngineImpl(board, config);
+            
+            // Rook cannot move diagonally
+            MoveResult result = engine.requestMove(0, 0, 2, 2);
+            assert !result.isAccepted() : "Illegal rook move should be rejected";
+            assert result.getReason().equals("illegal_piece_move") : 
+                "Reason should be 'illegal_piece_move', got: " + result.getReason();
+            System.out.println("[PASS] Test 7: Invalid move - illegal_piece_move reason");
+            passed++;
+        } catch (Exception e) {
+            System.out.println("[FAIL] Test 7: " + e.getMessage());
+        }
+        
+        // Test 8: After motion completes, next move is accepted
+        total++;
+        try {
+            Piece[][] grid = new Piece[4][3];
+            Piece rook = new Piece(Piece.WHITE, PieceType.ROOK);
+            Piece pawn = new Piece(Piece.WHITE, PieceType.PAWN);
+            grid[0][0] = rook;
+            grid[2][0] = pawn;
+            Board board = Board.create(grid, config);
+            GameEngine engine = new GameEngineImpl(board, config);
+            
+            // Start and complete first move
+            MoveResult result1 = engine.requestMove(0, 0, 0, 2);
+            assert result1.isAccepted();
+            
+            // Wait for move to complete
+            engine.pause(config.getMoveDurationMs());
+            
+            // Second move should now be accepted (different piece)
+            MoveResult result2 = engine.requestMove(2, 0, 3, 0);
+            assert result2.isAccepted() : "Move after motion completes should be accepted";
+            System.out.println("[PASS] Test 8: Move accepted after motion completes");
+            passed++;
+        } catch (Exception e) {
+            System.out.println("[FAIL] Test 8: " + e.getMessage());
+        }
+        
+        // Test 9: Snapshot is read-only
+        total++;
+        try {
+            Piece[][] grid = new Piece[3][3];
+            Piece king = new Piece(Piece.WHITE, PieceType.KING);
+            grid[1][1] = king;
+            Board board = Board.create(grid, config);
+            GameEngine engine = new GameEngineImpl(board, config);
+            
+            var snapshot = engine.snapshot();
+            assert !snapshot.isGameOver() : "Game should not be over";
+            System.out.println("[PASS] Test 9: Snapshot created");
+            passed++;
+        } catch (Exception e) {
+            System.out.println("[FAIL] Test 9: " + e.getMessage());
+        }
+        
+        // Test 10: wait(ms) does not crash when game is over
+        total++;
+        try {
+            Piece[][] grid = new Piece[3][3];
+            Piece rook = new Piece(Piece.WHITE, PieceType.ROOK);
+            Piece blackKing = new Piece(Piece.BLACK, PieceType.KING);
+            grid[0][0] = rook;
+            grid[0][2] = blackKing;
+            Board board = Board.create(grid, config);
+            GameEngine engine = new GameEngineImpl(board, config);
+            
+            // Capture and end game
+            engine.requestMove(0, 0, 0, 2);
+            engine.pause(config.getMoveDurationMs());
+            
+            // wait() should not crash after game over
+            engine.pause(1000);
+            System.out.println("[PASS] Test 10: wait() safe after game over");
+            passed++;
+        } catch (Exception e) {
+            System.out.println("[FAIL] Test 10: " + e.getMessage());
+        }
+        
         System.out.println("\n=== GameEngine Tests: " + passed + "/" + total + " passed ===");
     }
 }

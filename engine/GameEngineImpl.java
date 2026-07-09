@@ -2,102 +2,74 @@ package engine;
 
 import board.*;
 import models.Piece;
-import models.PieceType;
 import rules.*;
-import utils.CoordinateConverter;
 
+/**
+ * GameEngineImpl implements application-level move orchestration.
+ * 
+ * Responsibilities:
+ * - Guard against game_over and motion_in_progress
+ * - Delegate validation to RuleEngine
+ * - Return MoveResult with stable reason strings
+ * - Manage motion lifecycle (call moveManager.startMove)
+ * - Provide read-only snapshot
+ */
 public class GameEngineImpl implements GameEngine {
     private final Board board;
     private final GameConfig config;
     private final RuleEngine ruleEngine;
     private final MoveManager moveManager;
-    private final AirborneManager airborneManager;
-    private final TimerService timerService;
-    private final PromotionService promotionService;
     private final WinManager winManager;
-    private final CoordinateConverter converter;
-
-    private int selectedRow = -1;
-    private int selectedCol = -1;
+    private final TimerService timerService;
 
     public GameEngineImpl(Board board, GameConfig config) {
         this.board = board;
         this.config = config;
         this.ruleEngine = new StandardRuleEngine(config);
         this.winManager = new WinManager(config.getWinCondition());
-        this.promotionService = new PromotionService(config.getPromotionRule());
-        this.airborneManager = new AirborneManager(board, config);
+        
+        PromotionService promotionService = new PromotionService(config.getPromotionRule());
+        AirborneManager airborneManager = new AirborneManager(board, config);
         this.moveManager = new MoveManager(board, config, promotionService, winManager, airborneManager);
         this.timerService = new TimerService(moveManager, airborneManager);
-        this.converter = new CoordinateConverter(config.getPixelsPerCell());
     }
 
     @Override
-    public void handle(Command cmd) {
-        if (cmd instanceof ClickCommand) {
-            ClickCommand c = (ClickCommand) cmd;
-            handleClick(c.x, c.y);
-        } else if (cmd instanceof JumpCommand) {
-            JumpCommand j = (JumpCommand) cmd;
-            handleJump(j.x, j.y);
-        } else if (cmd instanceof WaitCommand) {
-            WaitCommand w = (WaitCommand) cmd;
-            handleWait(w.ms);
-        } else if (cmd instanceof PrintBoardCommand) {
-            board.printBoard();
+    public MoveResult requestMove(int srcRow, int srcCol, int destRow, int destCol) {
+        // Guard 1: game_over
+        if (winManager.isGameOver()) {
+            return MoveResult.rejected(MoveResult.GAME_OVER);
+        }
+
+        // Guard 2: motion_in_progress
+        if (moveManager.isMovePending()) {
+            return MoveResult.rejected(MoveResult.MOTION_IN_PROGRESS);
+        }
+
+        // Delegate to RuleEngine for rule-level validation
+        MoveValidation validation = ruleEngine.validateMove(board, srcRow, srcCol, destRow, destCol);
+
+        if (!validation.isValid()) {
+            // Return rule-level reason
+            return MoveResult.rejected(validation.getReason());
+        }
+
+        // Move is valid - start motion
+        Piece piece = board.getPieceAt(srcRow, srcCol);
+        moveManager.startMove(piece, srcRow, srcCol, destRow, destCol);
+
+        return MoveResult.accepted();
+    }
+
+    @Override
+    public void pause(long durationMs) {
+        if (!winManager.isGameOver()) {
+            timerService.tick((int) durationMs);
         }
     }
 
-    private void handleClick(int x, int y) {
-        if (winManager.isGameOver() || moveManager.isMovePending()) return;
-        int col = converter.pixelToGridCol(x);
-        int row = converter.pixelToGridRow(y);
-        if (!board.isValid(row, col)) return;
-
-        Piece target = board.getPieceAt(row, col);
-
-        if (selectedRow == -1 || selectedCol == -1) {
-            if (target != null) {
-                selectedRow = row;
-                selectedCol = col;
-            }
-            return;
-        }
-
-        Piece selectedPiece = board.getPieceAt(selectedRow, selectedCol);
-        if (selectedRow == row && selectedCol == col) return;
-
-        if (target == null) {
-            if (ruleEngine.isValidMove(selectedPiece, selectedRow, selectedCol, row, col, board)) {
-                moveManager.startMove(selectedPiece, selectedRow, selectedCol, row, col);
-                selectedRow = -1; selectedCol = -1;
-            }
-            return;
-        }
-
-        if (selectedPiece.isSameColor(target)) {
-            selectedRow = row; selectedCol = col; return;
-        }
-
-        if (ruleEngine.isValidMove(selectedPiece, selectedRow, selectedCol, row, col, board)) {
-            moveManager.startMove(selectedPiece, selectedRow, selectedCol, row, col);
-            selectedRow = -1; selectedCol = -1;
-        } else {
-            selectedRow = row; selectedCol = col;
-        }
-    }
-
-    private void handleJump(int x, int y) {
-        if (winManager.isGameOver() || airborneManager.hasAirborne() || moveManager.isMovePending()) return;
-        int col = converter.pixelToGridCol(x);
-        int row = converter.pixelToGridRow(y);
-        if (!board.isValid(row, col)) return;
-        Piece piece = board.getPieceAt(row, col);
-        if (piece != null) airborneManager.startJump(piece, row, col);
-    }
-
-    private void handleWait(int ms) {
-        if (winManager.isGameOver()) return;
-        timerService.tick(ms);
+    @Override
+    public GameSnapshot snapshot() {
+        return new GameSnapshot(board, winManager.isGameOver());
     }
 }
