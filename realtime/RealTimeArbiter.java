@@ -21,6 +21,10 @@ public class RealTimeArbiter {
     private int airbornePrevRow = -1;
     private int airbornePrevCol = -1;
     private long airborneRemainingMs = 0L;
+    private int lastArrivedSrcRow = -1;
+    private int lastArrivedSrcCol = -1;
+    private int lastArrivedDestRow = -1;
+    private int lastArrivedDestCol = -1;
 
     public RealTimeArbiter(Board board, WinCondition winCondition, PromotionRule promotionRule) {
         this.board = board;
@@ -102,6 +106,14 @@ public class RealTimeArbiter {
             return;
         }
 
+        if (lastArrivedDestRow == airborneRow && lastArrivedDestCol == airborneCol
+                && board.isValid(lastArrivedSrcRow, lastArrivedSrcCol)
+                && board.getPieceAt(lastArrivedSrcRow, lastArrivedSrcCol) == null) {
+            board.setPieceAt(lastArrivedSrcRow, lastArrivedSrcCol, target);
+            board.setPieceAt(airborneRow, airborneCol, airbornePiece);
+            return;
+        }
+
         if (board.isValid(airbornePrevRow, airbornePrevCol)) {
             board.setPieceAt(airbornePrevRow, airbornePrevCol, airbornePiece);
         }
@@ -114,10 +126,19 @@ public class RealTimeArbiter {
         airbornePrevRow = -1;
         airbornePrevCol = -1;
         airborneRemainingMs = 0L;
+        lastArrivedSrcRow = -1;
+        lastArrivedSrcCol = -1;
+        lastArrivedDestRow = -1;
+        lastArrivedDestCol = -1;
     }
 
     /** Applies board updates for one completed motion. */
     private void resolveArrival(Motion motion) {
+        lastArrivedSrcRow = motion.getSrcRow();
+        lastArrivedSrcCol = motion.getSrcCol();
+        lastArrivedDestRow = motion.getDestRow();
+        lastArrivedDestCol = motion.getDestCol();
+
         Piece piece = motion.getPiece();
         Piece movingPiece = promotionRule != null
                 ? promotionRule.checkPromotion(piece, motion.getDestRow(), board)

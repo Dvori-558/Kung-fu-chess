@@ -135,7 +135,7 @@ class PawnMovementRule implements MovementRule {
         }
         
         // Two steps from starting row
-        int startRow = piece.getColor() == Piece.WHITE ? context.getHeight() - 1 : 0;
+        int startRow = piece.getColor() == Piece.WHITE ? context.getHeight() - 2 : 1;
         if (colDiff == 0 && rowDiff == 2 * direction && fromRow == startRow &&
             context.getPieceAt(toRow, toCol) == null &&
             context.isPathClear(fromRow, fromCol, toRow, toCol)) {
