@@ -48,6 +48,14 @@ public class GameEngineImpl implements GameEngine {
     }
 
     @Override
+    public boolean requestJump(int row, int col) {
+        if (winManager.isGameOver()) {
+            return false;
+        }
+        return realTimeArbiter.startJump(row, col);
+    }
+
+    @Override
     public void pause(long durationMs) {
         realTimeArbiter.advanceTime(durationMs);
     }

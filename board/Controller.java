@@ -1,7 +1,6 @@
 package board;
 
 import engine.GameEngine;
-import engine.MoveResult;
 import models.Piece;
 import utils.CoordinateConverter;
 
@@ -12,10 +11,6 @@ public class Controller {
     private final CoordinateConverter converter;
     private int selectedRow = -1;
     private int selectedCol = -1;
-    private int lastAcceptedSrcRow = -1;
-    private int lastAcceptedSrcCol = -1;
-    private int lastAcceptedDestRow = -1;
-    private int lastAcceptedDestCol = -1;
 
     public Controller(GameEngine engine, Board board, CoordinateConverter converter) {
         this.engine = engine;
@@ -55,30 +50,8 @@ public class Controller {
             return;
         }
 
-        MoveResult result = engine.requestMove(selectedRow, selectedCol, row, col);
-        if (result.isAccepted()) {
-            lastAcceptedSrcRow = selectedRow;
-            lastAcceptedSrcCol = selectedCol;
-            lastAcceptedDestRow = row;
-            lastAcceptedDestCol = col;
-        }
+        engine.requestMove(selectedRow, selectedCol, row, col);
         selectedRow = -1;
         selectedCol = -1;
-    }
-
-    public int getLastAcceptedSrcRow() {
-        return lastAcceptedSrcRow;
-    }
-
-    public int getLastAcceptedSrcCol() {
-        return lastAcceptedSrcCol;
-    }
-
-    public int getLastAcceptedDestRow() {
-        return lastAcceptedDestRow;
-    }
-
-    public int getLastAcceptedDestCol() {
-        return lastAcceptedDestCol;
     }
 }

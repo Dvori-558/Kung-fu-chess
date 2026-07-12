@@ -15,7 +15,12 @@ public class RealTimeArbiter {
     private final WinCondition winCondition;
     private final PromotionRule promotionRule;
     private final List<Motion> activeMotions = new ArrayList<>();
-    private long simulatedTimeMs = 0;
+    private Piece airbornePiece;
+    private int airborneRow = -1;
+    private int airborneCol = -1;
+    private int airbornePrevRow = -1;
+    private int airbornePrevCol = -1;
+    private long airborneRemainingMs = 0L;
 
     public RealTimeArbiter(Board board, WinCondition winCondition, PromotionRule promotionRule) {
         this.board = board;
@@ -27,6 +32,32 @@ public class RealTimeArbiter {
     public void startMotion(Piece piece, int srcRow, int srcCol, int destRow, int destCol, long durationMs) {
         Motion motion = new Motion(piece, srcRow, srcCol, destRow, destCol, durationMs);
         activeMotions.add(motion);
+    }
+
+    /**
+     * Starts an airborne jump from the provided board cell.
+     */
+    public boolean startJump(int row, int col) {
+        if (airbornePiece != null || hasActiveMotion()) {
+            return false;
+        }
+        if (!board.isValid(row, col)) {
+            return false;
+        }
+
+        Piece piece = board.getPieceAt(row, col);
+        if (piece == null) {
+            return false;
+        }
+
+        airbornePiece = piece;
+        airborneRow = row;
+        airborneCol = col;
+        airbornePrevRow = row;
+        airbornePrevCol = col;
+        airborneRemainingMs = 1000L;
+        board.setPieceAt(row, col, null);
+        return true;
     }
 
     /** Advances time and resolves completed motions. */
@@ -46,6 +77,43 @@ public class RealTimeArbiter {
             resolveArrival(motion);
         }
         activeMotions.removeAll(arrived);
+
+        if (airbornePiece != null) {
+            airborneRemainingMs -= deltaMs;
+            if (airborneRemainingMs <= 0) {
+                resolveJumpLanding();
+                clearAirborne();
+            }
+        }
+    }
+
+    private void resolveJumpLanding() {
+        Piece target = board.getPieceAt(airborneRow, airborneCol);
+        if (target == null) {
+            board.setPieceAt(airborneRow, airborneCol, airbornePiece);
+            return;
+        }
+
+        if (target.getColor() != airbornePiece.getColor()) {
+            if (target.getType() == PieceType.KING) {
+                winCondition.recordKingCapture(airbornePiece.getColor());
+            }
+            board.setPieceAt(airborneRow, airborneCol, airbornePiece);
+            return;
+        }
+
+        if (board.isValid(airbornePrevRow, airbornePrevCol)) {
+            board.setPieceAt(airbornePrevRow, airbornePrevCol, airbornePiece);
+        }
+    }
+
+    private void clearAirborne() {
+        airbornePiece = null;
+        airborneRow = -1;
+        airborneCol = -1;
+        airbornePrevRow = -1;
+        airbornePrevCol = -1;
+        airborneRemainingMs = 0L;
     }
 
     /** Applies board updates for one completed motion. */
