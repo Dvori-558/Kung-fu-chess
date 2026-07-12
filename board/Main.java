@@ -42,9 +42,7 @@ public class Main {
                 if (parts.length >= 3) {
                     int x = Integer.parseInt(parts[1]);
                     int y = Integer.parseInt(parts[2]);
-                    int col = converter.pixelToGridCol(x);
-                    int row = converter.pixelToGridRow(y);
-                    engine.requestJump(row, col);
+                    controller.jump(x, y);
                 }
             } else if (line.startsWith("wait") || line.startsWith("pause")) {
                 String[] parts = line.split("\\s+");

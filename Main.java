@@ -1,6 +1,5 @@
 import java.util.Scanner;
 
-import board.Board;
 import board.Controller;
 import engine.GameEngine;
 import engine.GameEngineImpl;
@@ -16,7 +15,7 @@ public class Main {
         Scanner sc = new Scanner(System.in);
         GameConfig config = new GameConfig.Builder().buildStandardChess().build();
 
-        Board board = BoardParser.parse(sc, config);
+        var board = BoardParser.parse(sc, config);
         if (board.isEmpty()) {
             sc.close();
             return;
@@ -42,9 +41,7 @@ public class Main {
                 if (parts.length >= 3) {
                     int x = Integer.parseInt(parts[1]);
                     int y = Integer.parseInt(parts[2]);
-                    int col = converter.pixelToGridCol(x);
-                    int row = converter.pixelToGridRow(y);
-                    engine.requestJump(row, col);
+                    controller.jump(x, y);
                 }
             } else if (line.startsWith("wait") || line.startsWith("pause")) {
                 String[] parts = line.split("\\s+");

@@ -54,4 +54,11 @@ public class Controller {
         selectedRow = -1;
         selectedCol = -1;
     }
+
+    /** Converts a jump click to board coordinates and forwards it to the engine. */
+    public void jump(int pixelX, int pixelY) {
+        int col = converter.pixelToGridCol(pixelX);
+        int row = converter.pixelToGridRow(pixelY);
+        engine.requestJump(row, col);
+    }
 }
