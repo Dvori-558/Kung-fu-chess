@@ -10,4 +10,4 @@ target/
 bin/
 # OS
 .DS_Store
-Thumbs.db
+docs/project-visual-guide-he.md
