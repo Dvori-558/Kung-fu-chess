@@ -20,14 +20,14 @@ public class CoordinateConverter {
      * Convert pixel X coordinate to grid column.
      */
     public int pixelToGridCol(int pixelX) {
-        return pixelX / pixelsPerCell;
+        return Math.floorDiv(pixelX, pixelsPerCell);
     }
     
     /**
      * Convert pixel Y coordinate to grid row.
      */
     public int pixelToGridRow(int pixelY) {
-        return pixelY / pixelsPerCell;
+        return Math.floorDiv(pixelY, pixelsPerCell);
     }
     
     /**

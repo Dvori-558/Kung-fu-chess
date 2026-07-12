@@ -1,6 +1,7 @@
-package board;
-
 import java.util.Scanner;
+
+import board.Board;
+import board.Controller;
 import engine.GameEngine;
 import engine.GameEngineImpl;
 import engine.GameSnapshot;
@@ -12,14 +13,7 @@ import rules.GameConfig;
 import utils.CoordinateConverter;
 
 /**
- * Main - application entry point.
- * Wires up all layers and runs the command loop.
- * 
- * Command flow per the design guide:
- * - Board text -> BoardParser -> Board
- * - click x y -> Controller.click(x, y)
- * - wait ms   -> GameEngine.pause(ms)
- * - print board -> BoardPrinter.print(snapshot)
+ * Flat-upload friendly entry point for external test harnesses that run `java Main`.
  */
 public class Main {
     public static void main(String[] args) {
@@ -35,7 +29,6 @@ public class Main {
         GameEngine engine = new GameEngineImpl(board, config);
         CoordinateConverter converter = new CoordinateConverter(config.getPixelsPerCell());
         Controller controller = new Controller(engine, board, converter);
-        BoardPrinter printer = new BoardPrinter();
         Piece airbornePiece = null;
         int airborneRow = -1;
         int airborneCol = -1;
@@ -116,7 +109,7 @@ public class Main {
                 }
             } else if (line.equals("print board")) {
                 GameSnapshot snapshot = engine.snapshot();
-                printer.print(snapshot.getBoard());
+                BoardPrinter.print(snapshot.getBoard());
             }
         }
 

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import board.Board;
+import rules.PromotionRule;
 import rules.WinCondition;
 import models.Piece;
 import models.PieceType;
@@ -31,12 +32,14 @@ import models.PieceType;
 public class RealTimeArbiter {
     private final Board board;
     private final WinCondition winCondition;
+    private final PromotionRule promotionRule;
     private final List<Motion> activeMotions = new ArrayList<>();
     private long simulatedTimeMs = 0;
 
-    public RealTimeArbiter(Board board, WinCondition winCondition) {
+    public RealTimeArbiter(Board board, WinCondition winCondition, PromotionRule promotionRule) {
         this.board = board;
         this.winCondition = winCondition;
+        this.promotionRule = promotionRule;
     }
 
     /**
@@ -80,16 +83,23 @@ public class RealTimeArbiter {
      */
     private void resolveArrival(Motion motion) {
         Piece piece = motion.getPiece();
+        Piece movingPiece = promotionRule != null
+                ? promotionRule.checkPromotion(piece, motion.getDestRow(), board)
+                : piece;
         int destRow = motion.getDestRow();
         int destCol = motion.getDestCol();
 
-        // Step 1: Remove from source
-        board.setPieceAt(motion.getSrcRow(), motion.getSrcCol(), null);
+        Piece sourcePiece = board.getPieceAt(motion.getSrcRow(), motion.getSrcCol());
+
+        // Step 1: Remove from source only if the same moving piece is still there
+        if (sourcePiece == piece) {
+            board.setPieceAt(motion.getSrcRow(), motion.getSrcCol(), null);
+        }
 
         // Step 2: Capture enemy at destination if present
         Piece target = board.getPieceAt(destRow, destCol);
         boolean kingCaptured = false;
-        if (target != null && target.getColor() != piece.getColor()) {
+        if (target != null && target.getColor() != movingPiece.getColor()) {
             if (target.getType() == PieceType.KING) {
                 kingCaptured = true;
             }
@@ -97,11 +107,11 @@ public class RealTimeArbiter {
         }
 
         // Step 3: Place piece at destination
-        board.setPieceAt(destRow, destCol, piece);
+        board.setPieceAt(destRow, destCol, movingPiece);
 
         // Step 4: Report king capture
         if (kingCaptured) {
-            winCondition.recordKingCapture(piece.getColor());
+            winCondition.recordKingCapture(movingPiece.getColor());
         }
     }
 

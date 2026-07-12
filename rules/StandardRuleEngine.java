@@ -75,12 +75,19 @@ public class StandardRuleEngine implements RuleEngine {
         int colDiff = Math.abs(destCol - srcCol);
 
         // Direction depends on color
-        int direction = (pawn.getColor() == Piece.WHITE) ? 1 : -1;
+        int direction = (pawn.getColor() == Piece.WHITE) ? -1 : 1;
 
         // Forward one square
         if (colDiff == 0 && rowDiff == direction) {
             Piece target = board.getPieceAt(destRow, destCol);
             return target == null; // Must be empty
+        }
+
+        // Forward two squares from starting row
+        int startRow = (pawn.getColor() == Piece.WHITE) ? (board.getHeight() - 1) : 0;
+        if (colDiff == 0 && rowDiff == 2 * direction && srcRow == startRow) {
+            Piece target = board.getPieceAt(destRow, destCol);
+            return target == null && board.isPathClear(srcRow, srcCol, destRow, destCol);
         }
 
         // Capture diagonally

@@ -57,6 +57,16 @@ public interface GameEngine {
      * @param durationMs milliseconds to advance
      */
     void pause(long durationMs);
+
+    /**
+     * @return true when at least one motion is active.
+     */
+    boolean hasActiveMotion();
+
+    /**
+     * @return true when game is over.
+     */
+    boolean isGameOver();
     
     /**
      * Create a read-only snapshot of current game state.

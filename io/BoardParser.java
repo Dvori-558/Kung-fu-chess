@@ -81,7 +81,19 @@ public class BoardParser {
         }
 
         // Parse all rows into a grid
-        return parseGrid(boardRows, config);
+        try {
+            return parseGrid(boardRows, config);
+        } catch (IllegalArgumentException ex) {
+            String message = ex.getMessage();
+            if (message != null && message.startsWith("UNKNOWN_TOKEN")) {
+                System.out.println("ERROR UNKNOWN_TOKEN");
+            } else if (message != null && message.startsWith("ROW_WIDTH_MISMATCH")) {
+                System.out.println("ERROR ROW_WIDTH_MISMATCH");
+            } else {
+                System.out.println("ERROR UNKNOWN_TOKEN");
+            }
+            return Board.create(new Piece[0][0], config);
+        }
     }
 
     /**
@@ -104,8 +116,7 @@ public class BoardParser {
             String[] tokens = rows.get(i).split("\\s+");
 
             if (tokens.length != cols) {
-                throw new IllegalArgumentException(
-                    "Row " + i + " has " + tokens.length + " columns, expected " + cols);
+                throw new IllegalArgumentException("ROW_WIDTH_MISMATCH");
             }
 
             for (int j = 0; j < cols; j++) {
@@ -131,8 +142,7 @@ public class BoardParser {
         }
 
         if (token.length() != 2) {
-            throw new IllegalArgumentException(
-                "Invalid piece format: '" + token + "' (expected 2 characters)");
+            throw new IllegalArgumentException("UNKNOWN_TOKEN");
         }
 
         char colorChar = token.charAt(0);
@@ -145,8 +155,7 @@ public class BoardParser {
         } else if (colorChar == 'b') {
             color = Piece.BLACK;
         } else {
-            throw new IllegalArgumentException(
-                "Invalid color: '" + colorChar + "' (expected 'w' or 'b')");
+            throw new IllegalArgumentException("UNKNOWN_TOKEN");
         }
 
         // Parse piece type
@@ -157,8 +166,7 @@ public class BoardParser {
         else if (typeChar == 'B') type = PieceType.BISHOP;
         else if (typeChar == 'N') type = PieceType.KNIGHT;
         else if (typeChar == 'P') type = PieceType.PAWN;
-        else throw new IllegalArgumentException(
-            "Invalid piece type: '" + typeChar + "' (expected K/Q/R/B/N/P)");
+        else throw new IllegalArgumentException("UNKNOWN_TOKEN");
 
         return new Piece(color, type);
     }

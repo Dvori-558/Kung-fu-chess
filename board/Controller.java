@@ -1,6 +1,7 @@
 package board;
 
 import engine.GameEngine;
+import engine.MoveResult;
 import models.Piece;
 import utils.CoordinateConverter;
 
@@ -19,6 +20,10 @@ public class Controller {
     private final CoordinateConverter converter;
     private int selectedRow = -1;
     private int selectedCol = -1;
+    private int lastAcceptedSrcRow = -1;
+    private int lastAcceptedSrcCol = -1;
+    private int lastAcceptedDestRow = -1;
+    private int lastAcceptedDestCol = -1;
 
     public Controller(GameEngine engine, Board board, CoordinateConverter converter) {
         this.engine = engine;
@@ -56,9 +61,39 @@ public class Controller {
             return;
         }
 
+        // If another piece of the same color is clicked, replace selection.
+        Piece selectedPiece = board.getPieceAt(selectedRow, selectedCol);
+        if (selectedPiece != null && target != null && target.getColor() == selectedPiece.getColor()) {
+            selectedRow = row;
+            selectedCol = col;
+            return;
+        }
+
         // Second click: send move request
-        engine.requestMove(selectedRow, selectedCol, row, col);
+        MoveResult result = engine.requestMove(selectedRow, selectedCol, row, col);
+        if (result.isAccepted()) {
+            lastAcceptedSrcRow = selectedRow;
+            lastAcceptedSrcCol = selectedCol;
+            lastAcceptedDestRow = row;
+            lastAcceptedDestCol = col;
+        }
         selectedRow = -1;
         selectedCol = -1;
+    }
+
+    public int getLastAcceptedSrcRow() {
+        return lastAcceptedSrcRow;
+    }
+
+    public int getLastAcceptedSrcCol() {
+        return lastAcceptedSrcCol;
+    }
+
+    public int getLastAcceptedDestRow() {
+        return lastAcceptedDestRow;
+    }
+
+    public int getLastAcceptedDestCol() {
+        return lastAcceptedDestCol;
     }
 }

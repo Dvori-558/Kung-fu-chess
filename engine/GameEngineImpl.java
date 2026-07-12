@@ -39,7 +39,7 @@ public class GameEngineImpl implements GameEngine {
         this.config = config;
         this.ruleEngine = new StandardRuleEngine(config);
         this.winManager = new WinManager(config.getWinCondition());
-        this.realTimeArbiter = new RealTimeArbiter(board, config.getWinCondition());
+        this.realTimeArbiter = new RealTimeArbiter(board, config.getWinCondition(), config.getPromotionRule());
     }
 
     @Override
@@ -75,6 +75,16 @@ public class GameEngineImpl implements GameEngine {
         // Delegate time advancement to RealTimeArbiter
         // This is safe even when game is over (no-op if no active motions)
         realTimeArbiter.advanceTime(durationMs);
+    }
+
+    @Override
+    public boolean hasActiveMotion() {
+        return realTimeArbiter.hasActiveMotion();
+    }
+
+    @Override
+    public boolean isGameOver() {
+        return winManager.isGameOver();
     }
 
     @Override
