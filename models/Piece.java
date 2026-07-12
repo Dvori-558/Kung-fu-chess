@@ -1,16 +1,6 @@
 package models;
 
-/**
- * Piece represents a single chess piece on the board.
- * 
- * Design Pattern: Value Object (immutable)
- * Purpose: Encapsulate piece state (color + type)
- * 
- * Benefits:
- * - Immutable = thread-safe, easy to reason about
- * - Can be encoded as 1 byte: [color (1 bit) | type_id (7 bits)]
- * - Supports custom piece types via PieceType
- */
+/** Immutable piece value object (color + type). */
 public class Piece {
     public static final char WHITE = 'w';
     public static final char BLACK = 'b';
@@ -45,18 +35,13 @@ public class Piece {
         return other != null && this.color != other.color;
     }
     
-    /**
-     * Encode as byte for binary storage.
-     * Format: [color (1 bit) | type_id (7 bits)]
-     */
+    /** Encodes the piece into one byte. */
     public byte toByte() {
         byte colorBit = (byte) (color == WHITE ? 0 : 1);
         return (byte) ((colorBit << 7) | (type.getId() & 0x7F));
     }
     
-    /**
-     * Decode from byte (inverse of toByte).
-     */
+    /** Decodes a piece from one byte. */
     public static Piece fromByte(byte b, PieceType[] typeMap) {
         char color = ((b & 0x80) != 0) ? BLACK : WHITE;
         byte typeId = (byte) (b & 0x7F);
@@ -81,7 +66,6 @@ public class Piece {
     
     @Override
     public String toString() {
-        // Map piece types to their single-character representation
         char typeChar;
         if (type.equals(PieceType.PAWN)) typeChar = 'P';
         else if (type.equals(PieceType.KNIGHT)) typeChar = 'N';
@@ -93,7 +77,7 @@ public class Piece {
         return "" + color + typeChar;
     }
     
-    // ========== Standard Chess Pieces ==========
+    // Standard chess pieces
     public static Piece WHITE_PAWN = new Piece(WHITE, PieceType.PAWN);
     public static Piece WHITE_KNIGHT = new Piece(WHITE, PieceType.KNIGHT);
     public static Piece WHITE_BISHOP = new Piece(WHITE, PieceType.BISHOP);

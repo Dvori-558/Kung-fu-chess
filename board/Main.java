@@ -11,16 +11,7 @@ import models.PieceType;
 import rules.GameConfig;
 import utils.CoordinateConverter;
 
-/**
- * Main - application entry point.
- * Wires up all layers and runs the command loop.
- * 
- * Command flow per the design guide:
- * - Board text -> BoardParser -> Board
- * - click x y -> Controller.click(x, y)
- * - wait ms   -> GameEngine.pause(ms)
- * - print board -> BoardPrinter.print(snapshot)
- */
+/** Console entry point for packaged execution. */
 public class Main {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);

@@ -2,19 +2,7 @@ package realtime;
 
 import models.Piece;
 
-/**
- * Motion tracks a single piece moving from source to destination over simulated time.
- * 
- * Owns:
- * - Source and destination coordinates
- * - Duration and elapsed time tracking
- * - Arrival detection
- * 
- * Does NOT own:
- * - Board mutation
- * - Chess rules
- * - Rendering
- */
+/** Represents one piece motion over simulated time. */
 public class Motion {
     private final Piece piece;
     private final int srcRow;

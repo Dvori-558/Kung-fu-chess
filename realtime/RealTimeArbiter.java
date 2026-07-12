@@ -9,26 +9,7 @@ import rules.WinCondition;
 import models.Piece;
 import models.PieceType;
 
-/**
- * RealTimeArbiter manages all active motions and simulated time.
- * 
- * Owns:
- * - Collection of active Motion objects
- * - Simulated time counter
- * - Arrival resolution (atomic: remove source, capture, place at dest)
- * - King-capture reporting to WinManager
- * 
- * Does NOT own:
- * - Chess movement rules (RuleEngine)
- * - Board logical occupancy decisions (Board)
- * - Click handling (Controller)
- * - Rendering (Renderer)
- * 
- * Per the design guide:
- * - Board represents logical occupancy only
- * - RealTimeArbiter owns active motion state
- * - Logical board changes ONLY on arrival
- */
+/** Advances active motions and resolves arrivals on the board. */
 public class RealTimeArbiter {
     private final Board board;
     private final WinCondition winCondition;
@@ -42,20 +23,13 @@ public class RealTimeArbiter {
         this.promotionRule = promotionRule;
     }
 
-    /**
-     * Start a new motion for a validated move.
-     * Board is NOT changed here - only on arrival.
-     */
+    /** Registers a new motion. */
     public void startMotion(Piece piece, int srcRow, int srcCol, int destRow, int destCol, long durationMs) {
         Motion motion = new Motion(piece, srcRow, srcCol, destRow, destCol, durationMs);
         activeMotions.add(motion);
     }
 
-    /**
-     * Advance simulated time by deltaMs.
-     * Resolves any arrivals atomically.
-     * This is called by GameEngine.pause(ms).
-     */
+    /** Advances time and resolves completed motions. */
     public void advanceTime(long deltaMs) {
         for (Motion motion : activeMotions) {
             motion.advance(deltaMs);
@@ -74,13 +48,7 @@ public class RealTimeArbiter {
         activeMotions.removeAll(arrived);
     }
 
-    /**
-     * Atomic arrival resolution:
-     * 1. Remove piece from source
-     * 2. Capture enemy at destination (if any)
-     * 3. Place piece at destination
-     * 4. Report king capture to WinManager (if applicable)
-     */
+    /** Applies board updates for one completed motion. */
     private void resolveArrival(Motion motion) {
         Piece piece = motion.getPiece();
         Piece movingPiece = promotionRule != null
@@ -91,41 +59,31 @@ public class RealTimeArbiter {
 
         Piece sourcePiece = board.getPieceAt(motion.getSrcRow(), motion.getSrcCol());
 
-        // Step 1: Remove from source only if the same moving piece is still there
         if (sourcePiece == piece) {
             board.setPieceAt(motion.getSrcRow(), motion.getSrcCol(), null);
         }
 
-        // Step 2: Capture enemy at destination if present
         Piece target = board.getPieceAt(destRow, destCol);
         boolean kingCaptured = false;
         if (target != null && target.getColor() != movingPiece.getColor()) {
             if (target.getType() == PieceType.KING) {
                 kingCaptured = true;
             }
-            // Enemy piece is removed (overwritten by step 3)
         }
 
-        // Step 3: Place piece at destination
         board.setPieceAt(destRow, destCol, movingPiece);
 
-        // Step 4: Report king capture
         if (kingCaptured) {
             winCondition.recordKingCapture(movingPiece.getColor());
         }
     }
 
-    /**
-     * Returns true if any motion is currently active.
-     * Used by GameEngine for the motion_in_progress guard.
-     */
+    /** @return true if there is at least one active motion. */
     public boolean hasActiveMotion() {
         return !activeMotions.isEmpty();
     }
 
-    /**
-     * Returns a read-only view of active motions (for snapshot/rendering).
-     */
+    /** Returns a copy of active motions. */
     public List<Motion> getActiveMotions() {
         return new ArrayList<>(activeMotions);
     }

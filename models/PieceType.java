@@ -1,16 +1,6 @@
 package models;
 
-/**
- * PieceType defines the blueprint for a piece type.
- * 
- * Design Pattern: Value Object (immutable descriptor)
- * Purpose: Separate piece identity from game rules
- * 
- * Benefits:
- * - Can define custom piece types in JSON
- * - Each type has unique ID for binary encoding
- * - Future: Binary storage needs only the ID
- */
+/** Immutable descriptor for piece identity and id. */
 public class PieceType {
     private final String name;
     private final byte id;  // 0-127, for 1-byte encoding (color uses 1 bit)
@@ -49,7 +39,7 @@ public class PieceType {
         return name + "(" + id + ")";
     }
     
-    // ========== Standard Chess Pieces ==========
+    // Standard chess piece types
     public static final PieceType PAWN = new PieceType("Pawn", (byte) 1);
     public static final PieceType KNIGHT = new PieceType("Knight", (byte) 2);
     public static final PieceType BISHOP = new PieceType("Bishop", (byte) 3);

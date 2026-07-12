@@ -12,9 +12,7 @@ import models.PieceType;
 import rules.GameConfig;
 import utils.CoordinateConverter;
 
-/**
- * Flat-upload friendly entry point for external test harnesses that run `java Main`.
- */
+/** Console entry point used by the flat VPL runner. */
 public class Main {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);

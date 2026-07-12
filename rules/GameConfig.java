@@ -5,17 +5,7 @@ import java.util.Map;
 import models.PieceType;
 import rules.*;
 
-/**
- * GameConfig holds all game configuration and constants.
- * 
- * Design Pattern: Configuration Object
- * Purpose: No magic numbers or hardcoded values in business logic
- * 
- * Benefits:
- * - All constants in one place
- * - Can load from JSON for custom games
- * - Easy to test with different configurations
- */
+/** Central configuration for board size, timing, and rule strategies. */
 public class GameConfig {
     private final int boardWidth;
     private final int boardHeight;
@@ -65,9 +55,7 @@ public class GameConfig {
         return winCondition;
     }
     
-    /**
-     * Builder for convenient configuration.
-     */
+    /** Builder for GameConfig. */
     public static class Builder {
         private int boardWidth = 8;
         private int boardHeight = 8;
@@ -117,9 +105,7 @@ public class GameConfig {
                                  movementRules, promotionRule, winCondition);
         }
         
-        /**
-         * Create standard chess game configuration.
-         */
+        /** Loads standard chess movement rules. */
         public Builder buildStandardChess() {
             this.addMovementRule(new KingMovementRule());
             this.addMovementRule(new QueenMovementRule());

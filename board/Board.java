@@ -4,21 +4,7 @@ import models.Piece;
 import models.PieceType;
 import rules.GameConfig;
 
-/**
- * Board owns logical piece occupancy.
- * 
- * Owns:
- * - Width, height
- * - Grid of pieces (logical positions)
- * - Bounds checking
- * - Path clarity
- * 
- * Does NOT own:
- * - Chess movement rules
- * - Pixels or rendering
- * - Active motion state (that's RealTimeArbiter)
- * - Board parsing (that's BoardParser in io/)
- */
+/** Stores logical board state and board-level queries. */
 public class Board implements BoardContext {
     private final Piece[][] grid;
     private final int height;
@@ -69,7 +55,7 @@ public class Board implements BoardContext {
     @Override
     public int getWidth() { return width; }
 
-    // Package-visible setter for RealTimeArbiter to apply arrivals
+    /** Updates one board cell. */
     public void setPieceAt(int row, int col, Piece piece) {
         if (isValid(row, col)) {
             grid[row][col] = piece;

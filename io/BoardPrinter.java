@@ -3,35 +3,16 @@ package io;
 import board.Board;
 import models.Piece;
 
-/**
- * BoardPrinter outputs the logical board state in textual format.
- * 
- * Output format:
- *   wK . .
- *   . wR .
- *   . . bK
- * 
- * This prints logical occupancy only, not animation state or pixel positions.
- * It is a read-only adapter. It does not know about game logic, rules, or rendering.
- */
+/** Renders logical board state as plain text. */
 public class BoardPrinter {
     
-    /**
-     * Print the board to standard output.
-     * 
-     * @param board the board to print
-     */
+    /** Prints board text to stdout. */
     public static void print(Board board) {
         String output = toString(board);
         System.out.print(output);
     }
     
-    /**
-     * Convert board to textual representation.
-     * 
-     * @param board the board to convert
-     * @return textual representation with newlines
-     */
+    /** Converts board state to multiline text. */
     public static String toString(Board board) {
         if (board.isEmpty()) {
             return "";

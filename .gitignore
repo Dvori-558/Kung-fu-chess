@@ -11,3 +11,5 @@ bin/
 # OS
 .DS_Store
 docs/project-visual-guide-he.md
+.github
+submission_flat

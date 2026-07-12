@@ -1,11 +1,6 @@
 package utils;
 
-/**
- * CoordinateConverter handles pixel-to-grid coordinate conversion.
- * 
- * Design: Utility class (no magic numbers)
- * Purpose: Centralize coordinate conversion logic, support custom board sizes
- */
+/** Converts between pixel coordinates and board cells. */
 public class CoordinateConverter {
     private final int pixelsPerCell;
     
@@ -16,30 +11,22 @@ public class CoordinateConverter {
         this.pixelsPerCell = pixelsPerCell;
     }
     
-    /**
-     * Convert pixel X coordinate to grid column.
-     */
+    /** Converts pixel X to board column. */
     public int pixelToGridCol(int pixelX) {
         return Math.floorDiv(pixelX, pixelsPerCell);
     }
     
-    /**
-     * Convert pixel Y coordinate to grid row.
-     */
+    /** Converts pixel Y to board row. */
     public int pixelToGridRow(int pixelY) {
         return Math.floorDiv(pixelY, pixelsPerCell);
     }
     
-    /**
-     * Convert grid column to pixel X coordinate (center of cell).
-     */
+    /** Converts board column to pixel X (cell center). */
     public int gridColToPixelX(int col) {
         return col * pixelsPerCell + pixelsPerCell / 2;
     }
     
-    /**
-     * Convert grid row to pixel Y coordinate (center of cell).
-     */
+    /** Converts board row to pixel Y (cell center). */
     public int gridRowToPixelY(int row) {
         return row * pixelsPerCell + pixelsPerCell / 2;
     }

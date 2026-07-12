@@ -2,10 +2,7 @@ package board;
 
 import models.Piece;
 
-/**
- * BoardContext provides board state queries.
- * Used by RuleEngine and movement rules to inspect the board without owning it.
- */
+/** Read-only board query interface used by rule components. */
 public interface BoardContext {
     Piece getPieceAt(int row, int col);
     boolean isValid(int row, int col);

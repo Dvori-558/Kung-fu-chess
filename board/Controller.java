@@ -5,15 +5,7 @@ import engine.MoveResult;
 import models.Piece;
 import utils.CoordinateConverter;
 
-/**
- * Controller orchestrates user input and dispatches moves to GameEngine.
- * Owns selection state (which piece is selected).
- * 
- * Workflow:
- * 1. First click: select a piece
- * 2. Second click: send requestMove to GameEngine
- * GameEngine returns MoveResult with reason string.
- */
+/** Handles click selection and forwards move requests to the engine. */
 public class Controller {
     private final GameEngine engine;
     private final Board board;
@@ -31,10 +23,7 @@ public class Controller {
         this.converter = converter;
     }
 
-    /**
-     * Handle a click at pixel coordinates.
-     * Manages selection and sends move request to GameEngine.
-     */
+    /** Processes one click in pixel coordinates. */
     public void click(int pixelX, int pixelY) {
         int col = converter.pixelToGridCol(pixelX);
         int row = converter.pixelToGridRow(pixelY);
@@ -45,7 +34,6 @@ public class Controller {
 
         Piece target = board.getPieceAt(row, col);
 
-        // First click: select a piece
         if (selectedRow == -1 || selectedCol == -1) {
             if (target != null) {
                 selectedRow = row;
@@ -54,14 +42,12 @@ public class Controller {
             return;
         }
 
-        // Deselect if same cell
         if (selectedRow == row && selectedCol == col) {
             selectedRow = -1;
             selectedCol = -1;
             return;
         }
 
-        // If another piece of the same color is clicked, replace selection.
         Piece selectedPiece = board.getPieceAt(selectedRow, selectedCol);
         if (selectedPiece != null && target != null && target.getColor() == selectedPiece.getColor()) {
             selectedRow = row;
@@ -69,7 +55,6 @@ public class Controller {
             return;
         }
 
-        // Second click: send move request
         MoveResult result = engine.requestMove(selectedRow, selectedCol, row, col);
         if (result.isAccepted()) {
             lastAcceptedSrcRow = selectedRow;
