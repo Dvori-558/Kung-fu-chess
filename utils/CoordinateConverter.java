@@ -30,4 +30,8 @@ public class CoordinateConverter {
     public int gridRowToPixelY(int row) {
         return row * pixelsPerCell + pixelsPerCell / 2;
     }
+
+    public int getPixelsPerCell() {
+        return pixelsPerCell;
+    }
 }

@@ -3,7 +3,6 @@ package rules;
 import java.util.HashMap;
 import java.util.Map;
 import models.PieceType;
-import rules.*;
 
 /** Central configuration for board size, timing, and rule strategies. */
 public class GameConfig {

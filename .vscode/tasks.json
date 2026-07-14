@@ -1,0 +1,11 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run UI Main",
+			"type": "shell",
+			"command": "javac -d bin ui/*.java board/*.java engine/*.java models/*.java realtime/*.java rules/*.java utils/*.java io/*.java; java -cp bin ui.UIMain",
+			"isBackground": false
+		}
+	]
+}

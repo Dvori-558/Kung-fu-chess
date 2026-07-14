@@ -24,7 +24,6 @@ public class Main {
         GameEngine engine = new GameEngineImpl(board, config);
         CoordinateConverter converter = new CoordinateConverter(config.getPixelsPerCell());
         Controller controller = new Controller(engine, board, converter);
-        BoardPrinter printer = new BoardPrinter();
 
         while (sc.hasNextLine()) {
             String line = sc.nextLine().trim();
@@ -52,7 +51,7 @@ public class Main {
                 }
             } else if (line.equals("print board")) {
                 GameSnapshot snapshot = engine.snapshot();
-                printer.print(snapshot.getBoard());
+                BoardPrinter.print(snapshot.getBoard());
             }
         }
 

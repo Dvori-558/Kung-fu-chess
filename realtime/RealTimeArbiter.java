@@ -21,6 +21,7 @@ public class RealTimeArbiter {
     private int airbornePrevRow = -1;
     private int airbornePrevCol = -1;
     private long airborneRemainingMs = 0L;
+    private long airborneTotalMs = 0L;
     private int lastArrivedSrcRow = -1;
     private int lastArrivedSrcCol = -1;
     private int lastArrivedDestRow = -1;
@@ -41,7 +42,7 @@ public class RealTimeArbiter {
     /**
      * Starts an airborne jump from the provided board cell.
      */
-    public boolean startJump(int row, int col) {
+    public boolean startJump(int row, int col, long jumpDurationMs) {
         if (airbornePiece != null || hasActiveMotion()) {
             return false;
         }
@@ -59,7 +60,8 @@ public class RealTimeArbiter {
         airborneCol = col;
         airbornePrevRow = row;
         airbornePrevCol = col;
-        airborneRemainingMs = 1000L;
+        airborneTotalMs = Math.max(1L, jumpDurationMs);
+        airborneRemainingMs = airborneTotalMs;
         board.setPieceAt(row, col, null);
         return true;
     }
@@ -126,6 +128,7 @@ public class RealTimeArbiter {
         airbornePrevRow = -1;
         airbornePrevCol = -1;
         airborneRemainingMs = 0L;
+        airborneTotalMs = 0L;
         lastArrivedSrcRow = -1;
         lastArrivedSrcCol = -1;
         lastArrivedDestRow = -1;
@@ -175,5 +178,13 @@ public class RealTimeArbiter {
     /** Returns a copy of active motions. */
     public List<Motion> getActiveMotions() {
         return new ArrayList<>(activeMotions);
+    }
+
+    /** Returns current airborne jump state, or null if no jump is active. */
+    public AirborneJump getAirborneJump() {
+        if (airbornePiece == null) {
+            return null;
+        }
+        return new AirborneJump(airbornePiece, airborneRow, airborneCol, airborneRemainingMs, airborneTotalMs > 0 ? airborneTotalMs : 1000L);
     }
 }

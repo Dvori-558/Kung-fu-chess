@@ -1,5 +1,9 @@
 package engine;
 
+import java.util.List;
+import realtime.Motion;
+import realtime.AirborneJump;
+
 /** Command API for game actions and state queries. */
 public interface GameEngine {
     /** Validates and starts a move request. */
@@ -16,6 +20,12 @@ public interface GameEngine {
 
     /** @return true when at least one motion is active. */
     boolean hasActiveMotion();
+
+    /** Returns currently active motions for rendering/animation. */
+    List<Motion> getActiveMotions();
+
+    /** Returns current airborne jump state for rendering, or null if none. */
+    AirborneJump getAirborneJump();
 
     /** @return true when the game is over. */
     boolean isGameOver();

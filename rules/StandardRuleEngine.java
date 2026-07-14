@@ -2,7 +2,6 @@ package rules;
 
 import board.Board;
 import models.Piece;
-import models.PieceType;
 
 /**
  * StandardRuleEngine implements move validation with MoveValidation result.

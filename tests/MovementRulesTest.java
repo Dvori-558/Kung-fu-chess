@@ -2,7 +2,6 @@ package tests;
 
 import models.*;
 import board.Board;
-import board.BoardContext;
 import rules.*;
 
 /**

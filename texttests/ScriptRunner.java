@@ -11,13 +11,11 @@ import io.BoardPrinter;
 public class ScriptRunner {
     private final Controller controller;
     private final GameEngine engine;
-    private final BoardPrinter printer;
     private final ScriptParser parser;
 
-    public ScriptRunner(Controller controller, GameEngine engine, BoardPrinter printer) {
+    public ScriptRunner(Controller controller, GameEngine engine, BoardPrinter ignored) {
         this.controller = controller;
         this.engine = engine;
-        this.printer = printer;
         this.parser = new ScriptParser();
     }
 
@@ -36,7 +34,7 @@ public class ScriptRunner {
                 break;
             case PRINT_BOARD:
                 GameSnapshot snapshot = engine.snapshot();
-                printer.print(snapshot.getBoard());
+                BoardPrinter.print(snapshot.getBoard());
                 break;
             case EMPTY:
             case UNKNOWN:

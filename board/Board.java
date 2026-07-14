@@ -1,7 +1,6 @@
 package board;
 
 import models.Piece;
-import models.PieceType;
 import rules.GameConfig;
 
 /** Stores logical board state and board-level queries. */
