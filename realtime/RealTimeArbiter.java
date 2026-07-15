@@ -43,7 +43,10 @@ public class RealTimeArbiter {
      * Starts an airborne jump from the provided board cell.
      */
     public boolean startJump(int row, int col, long jumpDurationMs) {
-        if (airbornePiece != null || hasActiveMotion()) {
+        if (airbornePiece != null) {
+            return false;
+        }
+        if (hasActiveMotion() && !isIncomingDestination(row, col)) {
             return false;
         }
         if (!board.isValid(row, col)) {
@@ -178,6 +181,16 @@ public class RealTimeArbiter {
     /** Returns a copy of active motions. */
     public List<Motion> getActiveMotions() {
         return new ArrayList<>(activeMotions);
+    }
+
+    /** Returns true if an active motion currently targets this board cell. */
+    public boolean isIncomingDestination(int row, int col) {
+        for (Motion motion : activeMotions) {
+            if (motion.getDestRow() == row && motion.getDestCol() == col) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /** Returns current airborne jump state, or null if no jump is active. */
