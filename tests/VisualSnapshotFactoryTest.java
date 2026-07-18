@@ -31,7 +31,7 @@ public class VisualSnapshotFactoryTest {
             GameEngine engine = new GameEngineImpl(board, config);
             Controller controller = new Controller(engine, board, new CoordinateConverter(config.getPixelsPerCell()));
 
-            SpriteAssetCatalog assets = new SpriteAssetCatalog();
+            SpriteAssetCatalog assets = new SpriteAssetCatalog(config.getPixelsPerCell());
             VisualSnapshotFactory factory = new VisualSnapshotFactory(
                     engine,
                     controller,
@@ -61,7 +61,7 @@ public class VisualSnapshotFactoryTest {
             GameEngine engine = new GameEngineImpl(board, config);
             Controller controller = new Controller(engine, board, new CoordinateConverter(config.getPixelsPerCell()));
 
-            SpriteAssetCatalog assets = new SpriteAssetCatalog();
+            SpriteAssetCatalog assets = new SpriteAssetCatalog(config.getPixelsPerCell());
             VisualSnapshotFactory factory = new VisualSnapshotFactory(
                     engine,
                     controller,

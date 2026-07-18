@@ -11,17 +11,20 @@ public class GameConfig {
     private final int moveDurationMs;
     private final int pixelsPerCell;
     private final Map<PieceType, MovementRule> movementRules;
+    private final Map<PieceType, Double> moveSpeedCellsPerSecByType;
     private final PromotionRule promotionRule;
     private final WinCondition winCondition;
     
     public GameConfig(int boardWidth, int boardHeight, int moveDurationMs, int pixelsPerCell,
                       Map<PieceType, MovementRule> movementRules,
+                      Map<PieceType, Double> moveSpeedCellsPerSecByType,
                       PromotionRule promotionRule, WinCondition winCondition) {
         this.boardWidth = boardWidth;
         this.boardHeight = boardHeight;
         this.moveDurationMs = moveDurationMs;
         this.pixelsPerCell = pixelsPerCell;
         this.movementRules = new HashMap<>(movementRules);
+        this.moveSpeedCellsPerSecByType = new HashMap<>(moveSpeedCellsPerSecByType);
         this.promotionRule = promotionRule;
         this.winCondition = winCondition;
     }
@@ -45,6 +48,13 @@ public class GameConfig {
     public MovementRule getMovementRule(PieceType type) {
         return movementRules.get(type);
     }
+
+    /** Optional move speed in cells per second for a specific piece type. */
+    public double getMoveSpeedCellsPerSec(PieceType type) {
+        if (type == null) return 0.0;
+        Double speed = moveSpeedCellsPerSecByType.get(type);
+        return speed == null ? 0.0 : speed;
+    }
     
     public PromotionRule getPromotionRule() {
         return promotionRule;
@@ -61,6 +71,7 @@ public class GameConfig {
         private int moveDurationMs = 1000;
         private int pixelsPerCell = 100;
         private Map<PieceType, MovementRule> movementRules = new HashMap<>();
+        private Map<PieceType, Double> moveSpeedCellsPerSecByType = new HashMap<>();
         private PromotionRule promotionRule = new StandardPromotionRule();
         private WinCondition winCondition = new StandardWinCondition();
         
@@ -88,6 +99,18 @@ public class GameConfig {
             this.movementRules.put(rule.getPieceType(), rule);
             return this;
         }
+
+        /** Sets piece movement speed in cells/second for duration calculation. */
+        public Builder pieceMoveSpeed(PieceType type, double speedCellsPerSec) {
+            if (type == null) {
+                throw new IllegalArgumentException("Piece type cannot be null");
+            }
+            if (speedCellsPerSec <= 0.0) {
+                throw new IllegalArgumentException("Speed must be > 0");
+            }
+            this.moveSpeedCellsPerSecByType.put(type, speedCellsPerSec);
+            return this;
+        }
         
         public Builder promotionRule(PromotionRule rule) {
             this.promotionRule = rule;
@@ -101,7 +124,7 @@ public class GameConfig {
         
         public GameConfig build() {
             return new GameConfig(boardWidth, boardHeight, moveDurationMs, pixelsPerCell,
-                                 movementRules, promotionRule, winCondition);
+                                 movementRules, moveSpeedCellsPerSecByType, promotionRule, winCondition);
         }
         
         /** Loads standard chess movement rules. */

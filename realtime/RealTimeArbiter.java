@@ -1,7 +1,9 @@
 package realtime;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import board.Board;
 import rules.PromotionRule;
@@ -15,6 +17,8 @@ public class RealTimeArbiter {
     private final WinCondition winCondition;
     private final PromotionRule promotionRule;
     private final List<Motion> activeMotions = new ArrayList<>();
+    private final Map<String, Long> restUntilBySquare = new HashMap<>();
+    private long simulatedTimeMs = 0L;
     private Piece airbornePiece;
     private int airborneRow = -1;
     private int airborneCol = -1;
@@ -71,6 +75,8 @@ public class RealTimeArbiter {
 
     /** Advances time and resolves completed motions. */
     public void advanceTime(long deltaMs) {
+        simulatedTimeMs += Math.max(0L, deltaMs);
+
         for (Motion motion : activeMotions) {
             motion.advance(deltaMs);
         }
@@ -100,6 +106,7 @@ public class RealTimeArbiter {
         Piece target = board.getPieceAt(airborneRow, airborneCol);
         if (target == null) {
             board.setPieceAt(airborneRow, airborneCol, airbornePiece);
+            startRestAt(airborneRow, airborneCol, 600L);
             return;
         }
 
@@ -108,6 +115,7 @@ public class RealTimeArbiter {
                 winCondition.recordKingCapture(airbornePiece.getColor());
             }
             board.setPieceAt(airborneRow, airborneCol, airbornePiece);
+            startRestAt(airborneRow, airborneCol, 600L);
             return;
         }
 
@@ -116,11 +124,13 @@ public class RealTimeArbiter {
                 && board.getPieceAt(lastArrivedSrcRow, lastArrivedSrcCol) == null) {
             board.setPieceAt(lastArrivedSrcRow, lastArrivedSrcCol, target);
             board.setPieceAt(airborneRow, airborneCol, airbornePiece);
+            startRestAt(airborneRow, airborneCol, 600L);
             return;
         }
 
         if (board.isValid(airbornePrevRow, airbornePrevCol)) {
             board.setPieceAt(airbornePrevRow, airbornePrevCol, airbornePiece);
+            startRestAt(airbornePrevRow, airbornePrevCol, 600L);
         }
     }
 
@@ -167,6 +177,7 @@ public class RealTimeArbiter {
         }
 
         board.setPieceAt(destRow, destCol, movingPiece);
+        startRestAt(destRow, destCol, 1200L);
 
         if (kingCaptured) {
             winCondition.recordKingCapture(movingPiece.getColor());
@@ -181,6 +192,20 @@ public class RealTimeArbiter {
     /** Returns a copy of active motions. */
     public List<Motion> getActiveMotions() {
         return new ArrayList<>(activeMotions);
+    }
+
+    /** Returns true when the piece on this square is still in rest cooldown. */
+    public boolean isPieceResting(int row, int col) {
+        String key = squareKey(row, col);
+        Long until = restUntilBySquare.get(key);
+        if (until == null) {
+            return false;
+        }
+        if (simulatedTimeMs >= until) {
+            restUntilBySquare.remove(key);
+            return false;
+        }
+        return board.getPieceAt(row, col) != null;
     }
 
     /** Returns true if an active motion currently targets this board cell. */
@@ -199,5 +224,16 @@ public class RealTimeArbiter {
             return null;
         }
         return new AirborneJump(airbornePiece, airborneRow, airborneCol, airborneRemainingMs, airborneTotalMs > 0 ? airborneTotalMs : 1000L);
+    }
+
+    private void startRestAt(int row, int col, long restMs) {
+        if (!board.isValid(row, col) || board.getPieceAt(row, col) == null) {
+            return;
+        }
+        restUntilBySquare.put(squareKey(row, col), simulatedTimeMs + Math.max(1L, restMs));
+    }
+
+    private String squareKey(int row, int col) {
+        return row + ":" + col;
     }
 }

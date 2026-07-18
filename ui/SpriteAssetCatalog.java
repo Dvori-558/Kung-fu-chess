@@ -13,11 +13,13 @@ import java.util.Map;
  * Keeps asset concerns separate from rendering and snapshot logic.
  */
 public class SpriteAssetCatalog {
+    private final int targetPixelsPerCell;
     private final Map<String, Map<String, List<BufferedImage>>> spriteStates = new HashMap<>();
     private final Map<String, Map<String, SpriteStateConfig>> stateConfigs = new HashMap<>();
     private boolean spritesLoaded = false;
 
-    public SpriteAssetCatalog() {
+    public SpriteAssetCatalog(int targetPixelsPerCell) {
+        this.targetPixelsPerCell = targetPixelsPerCell;
         loadSpriteAssets();
     }
 
@@ -55,37 +57,40 @@ public class SpriteAssetCatalog {
             return;
         }
 
-        File[] pieceRoots = root.listFiles(file -> file.isDirectory() && (file.getName().equals("pieces1") || file.getName().equals("pieces2")));
-        if (pieceRoots == null) {
+        File pieceRoot = new File(root, "pieces2");
+        if (!pieceRoot.exists() || !pieceRoot.isDirectory()) {
+            pieceRoot = new File(root, "pieces1");
+        }
+        if (!pieceRoot.exists() || !pieceRoot.isDirectory()) {
             return;
         }
 
-        for (File pieceRoot : pieceRoots) {
-            File[] pieceDirs = pieceRoot.listFiles(File::isDirectory);
-            if (pieceDirs == null) continue;
+        File[] pieceDirs = pieceRoot.listFiles(File::isDirectory);
+        if (pieceDirs == null) {
+            return;
+        }
 
-            for (File pieceDir : pieceDirs) {
-                File statesRoot = new File(pieceDir, "states");
-                if (!statesRoot.exists() || !statesRoot.isDirectory()) continue;
+        for (File pieceDir : pieceDirs) {
+            File statesRoot = new File(pieceDir, "states");
+            if (!statesRoot.exists() || !statesRoot.isDirectory()) continue;
 
-                File[] stateDirs = statesRoot.listFiles(File::isDirectory);
-                if (stateDirs == null) continue;
+            File[] stateDirs = statesRoot.listFiles(File::isDirectory);
+            if (stateDirs == null) continue;
 
-                for (File stateDir : stateDirs) {
-                    File graphicsDir = new File(stateDir, "sprites");
-                    List<BufferedImage> frames = loadOrderedPngFrames(graphicsDir.exists() ? graphicsDir : stateDir);
-                    if (frames.isEmpty()) continue;
+            for (File stateDir : stateDirs) {
+                File graphicsDir = new File(stateDir, "sprites");
+                List<BufferedImage> frames = loadOrderedPngFrames(graphicsDir.exists() ? graphicsDir : stateDir);
+                if (frames.isEmpty()) continue;
 
-                    String pieceKey = normalizePieceKey(pieceDir.getName());
-                    String stateKey = stateDir.getName().toLowerCase();
-                    spriteStates.computeIfAbsent(pieceKey, k -> new HashMap<>()).put(stateKey, frames);
+                String pieceKey = normalizePieceKey(pieceDir.getName());
+                String stateKey = stateDir.getName().toLowerCase();
+                spriteStates.computeIfAbsent(pieceKey, k -> new HashMap<>()).put(stateKey, frames);
 
-                    Path cfgPath = new File(stateDir, "config.json").toPath();
-                    SpriteStateConfig cfg = SpriteConfigLoader.load(cfgPath);
-                    stateConfigs.computeIfAbsent(pieceKey, k -> new HashMap<>()).put(stateKey, cfg);
+                Path cfgPath = new File(stateDir, "config.json").toPath();
+                SpriteStateConfig cfg = SpriteConfigLoader.load(cfgPath);
+                stateConfigs.computeIfAbsent(pieceKey, k -> new HashMap<>()).put(stateKey, cfg);
 
-                    spritesLoaded = true;
-                }
+                spritesLoaded = true;
             }
         }
     }
@@ -101,7 +106,12 @@ public class SpriteAssetCatalog {
         List<BufferedImage> frames = new ArrayList<>();
         for (File f : ordered) {
             try {
-                frames.add(new Img().read(f.getPath()).get());
+                frames.add(new Img().read(
+                        f.getPath(),
+                        new java.awt.Dimension(targetPixelsPerCell, targetPixelsPerCell),
+                        false,
+                        null
+                ).get());
             } catch (Exception ignored) {
             }
         }

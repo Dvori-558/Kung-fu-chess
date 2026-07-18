@@ -3,11 +3,15 @@ package ui;
 import board.Board;
 import board.Controller;
 import engine.GameEngine;
+import engine.GameEngineImpl;
 import engine.GameSnapshot;
 import models.Piece;
 import models.PieceType;
 import realtime.AirborneJump;
 import realtime.Motion;
+import rules.MoveValidation;
+import rules.RuleEngine;
+import rules.StandardRuleEngine;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -25,6 +29,7 @@ public class VisualSnapshotFactory {
     private final Controller controller;
     private final int cellSize;
     private final SpriteAssetCatalog assets;
+    private final RuleEngine moveHintRuleEngine;
 
     private final Map<String, VisualState> squareVisualStates = new HashMap<>();
     private final Set<String> prevActiveDestKeys = new HashSet<>();
@@ -52,6 +57,11 @@ public class VisualSnapshotFactory {
         this.controller = controller;
         this.cellSize = cellSize;
         this.assets = assets;
+        if (engine instanceof GameEngineImpl) {
+            this.moveHintRuleEngine = new StandardRuleEngine(((GameEngineImpl) engine).getConfig());
+        } else {
+            this.moveHintRuleEngine = null;
+        }
     }
 
     public VisualSnapshot build(long uiTimeMs) {
@@ -134,8 +144,42 @@ public class VisualSnapshotFactory {
                 controller.getSelectedRow(),
                 controller.getSelectedCol(),
                 engine.isGameOver(),
-                pieces
+                pieces,
+                computeLegalDestinations(board, motions)
         );
+    }
+
+    private List<BoardCell> computeLegalDestinations(Board board, List<Motion> motions) {
+        int srcRow = controller.getSelectedRow();
+        int srcCol = controller.getSelectedCol();
+        if (srcRow < 0 || srcCol < 0) return List.of();
+        if (!board.isValid(srcRow, srcCol)) return List.of();
+        if (board.getPieceAt(srcRow, srcCol) == null) return List.of();
+        if (moveHintRuleEngine == null) return List.of();
+
+        boolean isIncomingSource = false;
+        for (Motion motion : motions) {
+            if (motion.getDestRow() == srcRow && motion.getDestCol() == srcCol) {
+                isIncomingSource = true;
+                break;
+            }
+        }
+
+        boolean motionInProgress = !motions.isEmpty();
+        if (motionInProgress && !isIncomingSource) return List.of();
+
+        List<BoardCell> result = new ArrayList<>();
+        for (int row = 0; row < board.getHeight(); row++) {
+            for (int col = 0; col < board.getWidth(); col++) {
+                if (row == srcRow && col == srcCol) continue;
+
+                MoveValidation validation = moveHintRuleEngine.validateMove(board, srcRow, srcCol, row, col);
+                if (validation.isValid()) {
+                    result.add(new BoardCell(row, col));
+                }
+            }
+        }
+        return result;
     }
 
     private void updateVisualStateTracking(long uiTimeMs, List<Motion> activeMotions, AirborneJump airborne) {

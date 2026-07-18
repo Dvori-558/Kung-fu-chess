@@ -27,6 +27,8 @@ public class GameRenderer {
     private final long fallbackFrameTickMs = 120L;
 
     private final Map<BufferedImage, BufferedImage> monoSpriteCache = new HashMap<>();
+    private final Map<BufferedImage, BufferedImage> whiteSilhouetteCache = new HashMap<>();
+    private final Map<BufferedImage, BufferedImage> blackSilhouetteCache = new HashMap<>();
 
     private BufferedImage boardImage;
 
@@ -49,9 +51,21 @@ public class GameRenderer {
             g.drawImage(boardImage, 0, 0, null);
         }
 
+        drawLegalDestinations(g, snapshot);
         drawSelection(g, snapshot);
         drawPieces(g, snapshot, uiTimeMs);
         drawMessage(g, lastUiMessage, snapshot.isGameOver());
+    }
+
+    private void drawLegalDestinations(Graphics g, VisualSnapshot snapshot) {
+        if (snapshot.getLegalDestinations() == null || snapshot.getLegalDestinations().isEmpty()) return;
+
+        int cell = config.getPixelsPerCell();
+        Graphics2D g2 = (Graphics2D) g;
+        g2.setColor(new Color(119, 185, 73, 150));
+        for (BoardCell cellPos : snapshot.getLegalDestinations()) {
+            g2.fillRect(cellPos.getCol() * cell, cellPos.getRow() * cell, cell, cell);
+        }
     }
 
     private void loadBoardImage() {
@@ -63,7 +77,7 @@ public class GameRenderer {
         Graphics2D g = img.createGraphics();
         for (int row = 0; row < boardRows; row++) {
             for (int col = 0; col < boardCols; col++) {
-                g.setColor((row + col) % 2 == 0 ? Color.LIGHT_GRAY : Color.GRAY);
+                g.setColor((row + col) % 2 == 0 ? Color.WHITE : Color.BLACK);
                 g.fillRect(col * cellSize, row * cellSize, cellSize, cellSize);
             }
         }
@@ -99,7 +113,16 @@ public class GameRenderer {
 
         BufferedImage sprite = getSpriteFrame(piece, p.getState(), p.getProgressHint(), uiTimeMs, p.getRow(), p.getCol());
         if (sprite != null) {
-            g2d.drawImage(toMonochrome(sprite), x, y, cellSize, cellSize, null);
+            BufferedImage mono = toMonochrome(sprite);
+            BufferedImage outline = piece.getColor() == Piece.WHITE ? blackSilhouette(mono) : whiteSilhouette(mono);
+
+            // Draw a 1px halo so monochrome pieces stay visible on same-color squares.
+            g2d.drawImage(outline, x - 1, y, cellSize, cellSize, null);
+            g2d.drawImage(outline, x + 1, y, cellSize, cellSize, null);
+            g2d.drawImage(outline, x, y - 1, cellSize, cellSize, null);
+            g2d.drawImage(outline, x, y + 1, cellSize, cellSize, null);
+
+            g2d.drawImage(mono, x, y, cellSize, cellSize, null);
             return;
         }
 
@@ -180,7 +203,7 @@ public class GameRenderer {
         Graphics2D g2 = (Graphics2D) g;
         if (gameOver) {
             String title = "GAME OVER";
-            String subtitle = "No more moves";
+            String subtitle = (lastUiMessage != null && !lastUiMessage.isEmpty()) ? lastUiMessage : "No more moves";
             int w = boardCols * config.getPixelsPerCell();
             int h = boardRows * config.getPixelsPerCell();
 
@@ -237,6 +260,50 @@ public class GameRenderer {
         }
 
         monoSpriteCache.put(src, out);
+        return out;
+    }
+
+    private BufferedImage whiteSilhouette(BufferedImage src) {
+        BufferedImage cached = whiteSilhouetteCache.get(src);
+        if (cached != null) return cached;
+
+        int w = src.getWidth();
+        int h = src.getHeight();
+        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int a = (src.getRGB(x, y) >>> 24) & 0xFF;
+                if (a == 0) {
+                    out.setRGB(x, y, 0);
+                    continue;
+                }
+                out.setRGB(x, y, (a << 24) | 0x00FFFFFF);
+            }
+        }
+
+        whiteSilhouetteCache.put(src, out);
+        return out;
+    }
+
+    private BufferedImage blackSilhouette(BufferedImage src) {
+        BufferedImage cached = blackSilhouetteCache.get(src);
+        if (cached != null) return cached;
+
+        int w = src.getWidth();
+        int h = src.getHeight();
+        BufferedImage out = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
+        for (int y = 0; y < h; y++) {
+            for (int x = 0; x < w; x++) {
+                int a = (src.getRGB(x, y) >>> 24) & 0xFF;
+                if (a == 0) {
+                    out.setRGB(x, y, 0);
+                    continue;
+                }
+                out.setRGB(x, y, (a << 24));
+            }
+        }
+
+        blackSilhouetteCache.put(src, out);
         return out;
     }
 }

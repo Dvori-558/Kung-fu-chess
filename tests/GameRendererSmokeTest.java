@@ -24,7 +24,7 @@ public class GameRendererSmokeTest {
         total++;
         try {
             GameConfig config = new GameConfig.Builder().buildStandardChess().build();
-            SpriteAssetCatalog assets = new SpriteAssetCatalog();
+            SpriteAssetCatalog assets = new SpriteAssetCatalog(config.getPixelsPerCell());
             GameRenderer renderer = new GameRenderer(config, assets, 3, 3);
 
             Piece piece = new Piece(Piece.WHITE, PieceType.KING);
@@ -43,7 +43,8 @@ public class GameRendererSmokeTest {
                     1,
                     1,
                     false,
-                    List.of(p)
+                    List.of(p),
+                    List.of()
             );
 
             BufferedImage img = new BufferedImage(300, 300, BufferedImage.TYPE_INT_ARGB);

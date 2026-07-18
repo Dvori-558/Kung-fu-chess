@@ -13,6 +13,7 @@ public class MoveResult {
     public static final String OK = "ok";
     public static final String GAME_OVER = "game_over";
     public static final String MOTION_IN_PROGRESS = "motion_in_progress";
+    public static final String REST_IN_PROGRESS = "rest_in_progress";
     
     private final boolean isAccepted;
     private final String reason;

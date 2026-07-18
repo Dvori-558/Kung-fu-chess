@@ -56,7 +56,7 @@ public class GameEngineTest {
             assert result1.isAccepted() : "First move should be accepted";
             
             // Advance time to complete motion and trigger king capture
-            engine.pause(config.getMoveDurationMs());
+            engine.pause(2000);
             
             // Now game is over. Try another move.
             MoveResult result2 = engine.requestMove(0, 0, 1, 0);
@@ -68,6 +68,9 @@ public class GameEngineTest {
         } catch (Exception e) {
             System.out.println("[FAIL] Test 2: " + e.getMessage());
         }
+
+        // Reset config because win condition strategy is stateful across engines.
+        config = new GameConfig.Builder().buildStandardChess().build();
         
         // Test 3: motion_in_progress guard rejects second move
         total++;
@@ -184,14 +187,14 @@ public class GameEngineTest {
             GameEngine engine = new GameEngineImpl(board, config);
             
             // Start and complete first move
-            MoveResult result1 = engine.requestMove(0, 0, 0, 2);
+            MoveResult result1 = engine.requestMove(0, 0, 0, 1);
             assert result1.isAccepted();
             
-            // Wait for move to complete
-            engine.pause(config.getMoveDurationMs());
+            // Wait for move to complete + rest cooldown
+            engine.pause(2400);
             
             // Second move should now be accepted (different piece)
-            MoveResult result2 = engine.requestMove(2, 0, 3, 0);
+            MoveResult result2 = engine.requestMove(2, 0, 1, 0);
             assert result2.isAccepted() : "Move after motion completes should be accepted";
             System.out.println("[PASS] Test 8: Move accepted after motion completes");
             passed++;
@@ -224,13 +227,13 @@ public class GameEngineTest {
             Piece rook = new Piece(Piece.WHITE, PieceType.ROOK);
             Piece blackKing = new Piece(Piece.BLACK, PieceType.KING);
             grid[0][0] = rook;
-            grid[0][2] = blackKing;
+            grid[0][1] = blackKing;
             Board board = Board.create(grid, config);
             GameEngine engine = new GameEngineImpl(board, config);
             
             // Capture and end game
-            engine.requestMove(0, 0, 0, 2);
-            engine.pause(config.getMoveDurationMs());
+            engine.requestMove(0, 0, 0, 1);
+            engine.pause(2000);
             
             // pause() should not crash after game over
             engine.pause(1000);
@@ -238,6 +241,94 @@ public class GameEngineTest {
             passed++;
         } catch (Exception e) {
             System.out.println("[FAIL] Test 10: " + e.getMessage());
+        }
+
+        // Reset config because win condition strategy is stateful across engines.
+        config = new GameConfig.Builder().buildStandardChess().build();
+
+        // Test 11: piece-specific speed affects move duration
+        total++;
+        try {
+            GameConfig fastRookConfig = new GameConfig.Builder()
+                    .buildStandardChess()
+                    .pieceMoveSpeed(PieceType.ROOK, 2.0)
+                    .build();
+
+            Piece[][] grid = new Piece[1][3];
+            Piece rook = new Piece(Piece.WHITE, PieceType.ROOK);
+            grid[0][0] = rook;
+            Board board = Board.create(grid, fastRookConfig);
+            GameEngine engine = new GameEngineImpl(board, fastRookConfig);
+
+            MoveResult result = engine.requestMove(0, 0, 0, 2);
+            assert result.isAccepted() : "Configured-speed move should be accepted";
+
+            engine.pause(900);
+            assert board.getPieceAt(0, 0) != null : "Rook should still be in transit before 1000ms";
+            assert board.getPieceAt(0, 2) == null : "Rook should not have arrived yet";
+
+            engine.pause(200);
+            assert board.getPieceAt(0, 0) == null : "Rook should leave source after configured duration";
+            assert board.getPieceAt(0, 2) != null : "Rook should arrive at destination after configured duration";
+
+            System.out.println("[PASS] Test 11: piece-specific speed controls duration");
+            passed++;
+        } catch (Exception e) {
+            System.out.println("[FAIL] Test 11: " + e.getMessage());
+        }
+
+        // Test 12: rest cooldown rejects immediate move after arrival
+        total++;
+        try {
+            Piece[][] grid = new Piece[3][3];
+            Piece rook = new Piece(Piece.WHITE, PieceType.ROOK);
+            grid[0][0] = rook;
+            Board board = Board.create(grid, config);
+            GameEngine engine = new GameEngineImpl(board, config);
+
+            MoveResult first = engine.requestMove(0, 0, 0, 1);
+            assert first.isAccepted() : "First move should be accepted";
+            engine.pause(1000);
+
+            MoveResult immediate = engine.requestMove(0, 1, 0, 2);
+            assert !immediate.isAccepted() : "Move during rest should be rejected";
+            assert immediate.getReason().equals(MoveResult.REST_IN_PROGRESS)
+                    : "Expected rest_in_progress, got: " + immediate.getReason();
+
+            engine.pause(1300);
+            MoveResult afterRest = engine.requestMove(0, 1, 0, 2);
+            assert afterRest.isAccepted() : "Move after rest should be accepted";
+
+            System.out.println("[PASS] Test 12: rest cooldown blocks immediate follow-up move");
+            passed++;
+        } catch (Exception e) {
+            System.out.println("[FAIL] Test 12: " + e.getMessage());
+        }
+
+        // Test 13: rest cooldown rejects immediate jump after arrival
+        total++;
+        try {
+            Piece[][] grid = new Piece[3][3];
+            Piece rook = new Piece(Piece.WHITE, PieceType.ROOK);
+            grid[0][0] = rook;
+            Board board = Board.create(grid, config);
+            GameEngine engine = new GameEngineImpl(board, config);
+
+            MoveResult first = engine.requestMove(0, 0, 0, 1);
+            assert first.isAccepted() : "First move should be accepted";
+            engine.pause(1000);
+
+            boolean jumpImmediate = engine.requestJump(0, 1);
+            assert !jumpImmediate : "Jump during rest should be rejected";
+
+            engine.pause(1300);
+            boolean jumpAfterRest = engine.requestJump(0, 1);
+            assert jumpAfterRest : "Jump after rest should be accepted";
+
+            System.out.println("[PASS] Test 13: rest cooldown blocks immediate jump");
+            passed++;
+        } catch (Exception e) {
+            System.out.println("[FAIL] Test 13: " + e.getMessage());
         }
         
         System.out.println("\n=== GameEngine Tests (Coordinator): " + passed + "/" + total + " passed ===");
